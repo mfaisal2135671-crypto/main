@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { FileSearch, Upload, MessageCircle, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
+import { FileSearch, Upload, MessageCircle, CheckCircle, AlertCircle, Calendar, ExternalLink, Gift, Award, ShoppingBag } from 'lucide-react';
 import type { LostDocument, FoundDocument, DocumentMatch } from '../types';
 
 export const Dashboard: React.FC = () => {
@@ -9,11 +9,13 @@ export const Dashboard: React.FC = () => {
   const [lostDocs, setLostDocs] = useState<LostDocument[]>([]);
   const [foundDocs, setFoundDocs] = useState<FoundDocument[]>([]);
   const [matches, setMatches] = useState<DocumentMatch[]>([]);
+  const [rewardPoints, setRewardPoints] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadDashboardData();
+      loadRewardPoints();
     }
   }, [user]);
 
@@ -54,6 +56,102 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const loadRewardPoints = async () => {
+    try {
+      // Calculate reward points based on successful matches as finder
+      const { data: successfulMatches } = await supabase
+        .from('document_matches')
+        .select(`
+          *,
+          found_documents!inner(finder_id)
+        `)
+        .eq('found_documents.finder_id', user!.id)
+        .in('status', ['verified', 'completed']);
+
+      const points = (successfulMatches?.length || 0) * 100; // 100 points per successful match
+      setRewardPoints(points);
+    } catch (error) {
+      console.error('Error loading reward points:', error);
+    }
+  };
+
+  const governmentLinks = [
+    {
+      name: 'Aadhaar - UIDAI',
+      url: 'https://uidai.gov.in/',
+      description: 'Official Aadhaar services and updates',
+      icon: '🆔'
+    },
+    {
+      name: 'PAN - Income Tax Department',
+      url: 'https://www.incometax.gov.in/iec/foportal/',
+      description: 'PAN card services and tax information',
+      icon: '💳'
+    },
+    {
+      name: 'Passport Seva',
+      url: 'https://www.passportindia.gov.in/',
+      description: 'Passport application and services',
+      icon: '📘'
+    },
+    {
+      name: 'Driving License - Parivahan',
+      url: 'https://parivahan.gov.in/parivahan/',
+      description: 'Driving license and vehicle registration',
+      icon: '🚗'
+    },
+    {
+      name: 'Voter ID - Election Commission',
+      url: 'https://www.nvsp.in/',
+      description: 'Voter registration and services',
+      icon: '🗳️'
+    }
+  ];
+
+  const rewards = [
+    {
+      name: 'Amazon',
+      discount: '10% Off',
+      points: 500,
+      description: 'Get 10% discount on Amazon purchases',
+      color: 'bg-orange-100 text-orange-800'
+    },
+    {
+      name: 'Flipkart',
+      discount: '15% Off',
+      points: 750,
+      description: 'Get 15% discount on Flipkart orders',
+      color: 'bg-blue-100 text-blue-800'
+    },
+    {
+      name: 'Myntra',
+      discount: '20% Off',
+      points: 1000,
+      description: 'Get 20% discount on fashion items',
+      color: 'bg-pink-100 text-pink-800'
+    },
+    {
+      name: 'Zomato',
+      discount: '25% Off',
+      points: 300,
+      description: 'Get 25% discount on food orders',
+      color: 'bg-red-100 text-red-800'
+    },
+    {
+      name: 'BookMyShow',
+      discount: '₹100 Off',
+      points: 400,
+      description: 'Get ₹100 off on movie tickets',
+      color: 'bg-purple-100 text-purple-800'
+    },
+    {
+      name: 'Uber',
+      discount: '30% Off',
+      points: 600,
+      description: 'Get 30% discount on rides',
+      color: 'bg-green-100 text-green-800'
+    }
+  ];
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -121,6 +219,91 @@ export const Dashboard: React.FC = () => {
         })}
       </div>
 
+      {/* Reward Points Section */}
+      {foundDocs.length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl shadow-lg p-8 border border-yellow-200">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                <Award className="h-6 w-6 text-yellow-600 mr-2" />
+                Reward Points
+              </h2>
+              <p className="text-gray-600">Earn points by helping others find their documents!</p>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-yellow-600">{rewardPoints}</div>
+              <div className="text-sm text-gray-600">Points Available</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {rewards.map((reward, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow duration-200"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-gray-900">{reward.name}</h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${reward.color}`}>
+                    {reward.discount}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">{reward.description}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">{reward.points} points</span>
+                  <button
+                    disabled={rewardPoints < reward.points}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors duration-200 ${
+                      rewardPoints >= reward.points
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {rewardPoints >= reward.points ? 'Redeem' : 'Need More'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Government Links Section */}
+      <div className="bg-white rounded-2xl shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+          <ExternalLink className="h-6 w-6 text-blue-600 mr-2" />
+          Government Document Services
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Quick access to official government websites for document services and applications
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {governmentLinks.map((link, index) => (
+            <a
+              key={index}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block p-6 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-lg transition-all duration-200 group"
+            >
+              <div className="flex items-start space-x-4">
+                <div className="text-2xl">{link.icon}</div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
+                    {link.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">{link.description}</p>
+                  <div className="flex items-center mt-2 text-blue-600 text-sm">
+                    <span>Visit Website</span>
+                    <ExternalLink className="h-3 w-3 ml-1" />
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Lost Documents */}

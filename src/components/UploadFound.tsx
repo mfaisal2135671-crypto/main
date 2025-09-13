@@ -117,10 +117,13 @@ export const UploadFound: React.FC = () => {
               .select('id')
               .eq('finder_id', user!.id)
               .eq('document_number', formData.documentNumber)
+              .eq('document_type', formData.documentType)
+              .eq('holder_name', formData.holderName)
+              .order('created_at', { ascending: false })
               .single();
 
             if (foundDoc) {
-              await supabase
+              const { error: matchError } = await supabase
                 .from('document_matches')
                 .insert([
                   {
@@ -131,6 +134,7 @@ export const UploadFound: React.FC = () => {
                   }
                 ]);
 
+              if (!matchError) {
               // Update document statuses
               await supabase
                 .from('lost_documents')
@@ -141,6 +145,7 @@ export const UploadFound: React.FC = () => {
                 .from('found_documents')
                 .update({ status: 'matched' })
                 .eq('id', foundDoc.id);
+              }
             }
           }
         }
